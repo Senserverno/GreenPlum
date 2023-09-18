@@ -1,0 +1,46 @@
+-- таблицы справочников region,chanel, product, price
+-- Выполним full загрузку для них
+
+create or replace function std48.f_dict_load_full(p.table text, p file_name text)
+	return int4
+	language plpgsql
+	volatile 
+as $$
+
+declare 
+
+	v_ext_table_name text; --внешняя таблица
+	v_sql text, -- скрипчанский
+	v_gpfdist text; -- протокол по которому подрубамся
+	v_result int; -- результат переданных строк
+
+begin
+	
+	v_ext_table_name = p_table||'_ext';
+
+	execute 'TRUNCATE TABLE'||p_table;
+
+	execute 'DROP EXTERNAL TABLE IF EXIST '||v_ext_table_name;
+
+	v_gpfdist = 'GPFDIST://172.16.128.22:8080'||p_file_name||'.CSV';
+
+	v_sql = 'CREATE EXTERNAL TABLE '||v_ext_table_name||'(LIKE 'p_table||')
+			LOCATION ('''||v_gpfdist||'''
+			) ON ALL
+			FORMAT ''CSV'' ( HEADER DELIMETER '';'' NULL '''' ESCAPE ''"'' QUOTE ''"'' )
+			ENCODING''UTF8''';
+	
+	raise notice 'EXTERNAL TABLE IS%', v_sql;
+
+	execute v_sql;
+
+	execute 'insert into'||p_table||' SELECT * FROM '||v_ext_table_name;
+
+	execute 'SELECT COUNT(1) FROM '||p_table into v_result;
+
+	return v_result;
+	
+end;
+
+$$
+execute on any;
