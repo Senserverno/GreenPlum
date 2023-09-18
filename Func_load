@@ -1,0 +1,36 @@
+create or replace function std48.f_create_month_data_mart  (p_month varchar)
+	returns int4
+	language plpgsql
+	volatile 
+as $$
+
+declare 
+	v_table_name text;
+	v_sql text;
+	v_return int;
+begin 
+	
+	drop table if exists std48.plan_fact_||p_month;
+		create table std48.plan_fact_||p_month
+		 with (
+		 	appendonly = true,
+		 	orientation=column,
+		 	compresstype=zstd,
+		 	compresslevel=1 )
+		as 
+		 select material, region, distr_chan, p.matdirec,sum(std48.plan.quantity) as plan_q ,
+		 		sum(quantity) fact_q, precent_q 
+		 		from std48.sales s left join std48.plan p 
+		 		on s.region = p.region
+		 		where precent_q = plan_q / fact_q
+		 		group by material asc
+		 distributed by (material);
+		
+	select count(*) from std48.plan_fact_||p_month;
+		 		
+	return v_return;
+
+end;
+
+$$
+execute on any;
