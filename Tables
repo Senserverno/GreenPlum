@@ -1,0 +1,73 @@
+create table std48.sales (
+	"date" date NULL,
+	region varchar(20) NULL,
+	material varchar(20) NULL,
+	distr_chan varchar(100) NULL,
+	quantity int4 NULL,
+	check_nm varchar(100) NOT NULL,
+	check_pos varchar(100) NOT NULL
+)
+WITH (
+	appendonly=true,
+	orientation=row,
+	compresstype=zstd,
+	compresslevel=1
+)
+DISTRIBUTED BY (region)
+partition by range ("date")
+(
+start (date '2021-01-01') inclusive 
+	end (date '2021-08-01') exclusive 
+	every (interval '1 month')
+);
+
+create table std48.price (
+	"month" varchar(7) NOT NULL,
+	region varchar(20) NOT NULL,
+	matdirec varchar(20) NOT NULL,
+	quantity int4 NULL,
+	distr_chan varchar(100) NOT NULL,
+	CONSTRAINT plan_pkey PRIMARY KEY (month, region, matdirec, distr_chan)
+)
+distributed replicated;
+
+
+CREATE TABLE std48.plan (
+	"month" varchar(7) NOT NULL,
+	region varchar(20) NOT NULL,
+	matdirec varchar(20) NOT NULL,
+	quantity int4 NULL,
+	distr_chan varchar(100) NOT NULL
+)
+WITH (
+	appendonly=true,
+	orientation=column,
+	compresstype=zstd,
+	compresslevel=1
+)
+DISTRIBUTED BY ("month");
+
+CREATE TABLE std48.chanel (
+	distr_chan varchar(100) NULL,
+	txtsh text null,
+	CONSTRAINT chanel_pkey PRIMARY KEY (distr_chan)
+)
+DISTRIBUTED BY (distr_chan);
+
+CREATE TABLE std48.region (
+	region varchar(20) NULL,
+	txt text null,
+	CONSTRAINT region_pkey PRIMARY KEY (region)
+)
+DISTRIBUTED BY (region);
+
+CREATE TABLE std48.product (
+	material varchar(20) NULL,
+	asgrp varchar(20) NULL,
+	brand varchar(20) NULL,
+	matcateg varchar(20) NULL,
+	matdirec varchar(20) NULL,
+	txt varchar(255) null,
+	CONSTRAINT product_pkey PRIMARY KEY (material)
+)
+DISTRIBUTED BY (material);
